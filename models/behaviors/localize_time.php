@@ -29,6 +29,45 @@ class LocalizeTimeBehavior extends ModelBehavior {
 		}
 	}
 	
+	function beforeFind(&$model,$queryData) {
+		if(!empty($queryData['conditions'])) {
+			$queryData['conditions'] = $this->_localizeConditions($model,$queryData['conditions']);
+		}
+		return $queryData;
+	}
+	
+	function _localizeConditions(&$model,$conditions) {
+		$settings = $this->settings[$model->name];
+		foreach($conditions as $key => $value) {
+			// if the value is an array, recurse
+			// TODO: check the $key is not one of our fields, in which case they wanted an IN() query
+			if(is_array($value)) {
+				$conditions[$key] = $this->_localizeConditions($model,$value);
+			}
+			// if the key looks like a field name, and the value is a date, inspect deeper.
+			elseif (!is_numeric($key) && strftime($value)) {
+				$foundFieldName = $key;
+				// if there's a dot, abort if the model alias doesn't match
+				if(strpos($foundFieldName,'.') !== false) {
+					if(substr($foundFieldName,0,strpos($foundFieldName,'.')) != $model->alias) {
+						continue;
+					} else {
+						$foundFieldName = substr($foundFieldName,strpos($foundFieldName,'.')+1);
+					}
+				}
+				// if there's a space, ignore it and everything after it, as it's probably an sql modifier
+				if(strpos($foundFieldName,' ') !== false) {
+					$foundFieldName = substr($foundFieldName,0,strpos($foundFieldName,' '));
+				}
+				// finally check if it's in the list of fields to localize
+				if(in_array($foundFieldName,$settings['fields'])) {
+					$conditions[$key] = $this->_toServerTime($value);
+				}
+			}
+		}
+		return $conditions;
+	}
+	
 	/**
 	* Here we don't use the behavior afterFind method because this is only triggered for primary finds on this model. Instead you must
 	* put this in your model so that it happens for related finds too:

@@ -48,7 +48,8 @@ class LocalizeTimeBehaviorTestCase extends CakeTestCase {
 		$this->assertEqual($readTime,'2010-12-31 19:00:00');
 	}
 	
-	// CakePHP does not currently support triggering afterFind callbacks on related models, so this fails.
+	// CakePHP does not currently support triggering afterFind callbacks on related models, so note that the TimedItem has
+	// a basic afterFind added to trigger the bahavior afterFind.
 	
 	function testReadAssociated() {
 		LocalizeTimeBehavior::setUserTimeZone('UTC');
@@ -58,6 +59,54 @@ class LocalizeTimeBehaviorTestCase extends CakeTestCase {
 		LocalizeTimeBehavior::setUserTimeZone('America/New_York');
 		$results = $this->TimedItem->TimedItemParent->find('all');
 		$this->assertEqual(Set::extract('/TimedItem/timestamp',$results), array('2010-12-31 19:00:00'));
+	}
+	
+	function testConditions() {
+		$data = array('TimedItem'=>array('timestamp'=>'2011-02-01 09:00:00'));
+		LocalizeTimeBehavior::setUserTimeZone('UTC');
+		$this->assertTrue($this->TimedItem->save($data));
+		
+		$this->assertEqual(1, count($this->TimedItem->find('all', array(
+			'conditions'=>array('timestamp'=>'2011-02-01 09:00:00'),
+			'recursive'=>-1
+		))));
+		
+		// Check we know what this time should be in NY
+		$dtime = new DateTime('2011-02-01 09:00:00', new DateTimeZone('UTC'));
+		$dtime->setTimezone(new DateTimeZone('America/New_York'));
+		$this->assertEqual($dtime->format('Y-m-d H:i:s'),'2011-02-01 04:00:00');
+		
+		// Now query as an American
+		LocalizeTimeBehavior::setUserTimeZone('America/New_York');
+		$this->assertEqual(1, count($this->TimedItem->find('all', array(
+			'conditions'=>array('timestamp'=>'2011-02-01 04:00:00'),
+			'recursive'=>-1
+		))));
+		$this->assertEqual(1, count($this->TimedItem->find('all', array(
+			'conditions'=>array('TimedItem.timestamp'=>'2011-02-01 04:00:00'),
+			'recursive'=>-1
+		))));
+		$this->assertEqual(1, count($this->TimedItem->find('all', array(
+			'conditions'=>array('or'=>array(
+				array('TimedItem.timestamp'=>'2011-02-01 04:00:00'),
+				array('TimedItem.id'=>'99999'), // fake other condition that fails
+			)),
+			'recursive'=>-1
+		))));
+		$this->assertEqual(1, count($this->TimedItem->find('all', array(
+			'conditions'=>array('or'=>array(
+				array('TimedItem.timestamp'=>'2011-02-01 04:00:00'),
+				array('TimedItem.timestamp'=>'2011-02-01 05:00:00'),
+			)),
+			'recursive'=>-1
+		))));
+		$this->assertEqual(1, count($this->TimedItem->find('all', array(
+			'conditions'=>array(
+				array('TimedItem.timestamp >='=>'2011-02-01 04:00:00'),
+				array('TimedItem.timestamp <='=>'2011-02-01 05:00:00'),
+			),
+			'recursive'=>-1
+		))));
 	}
 	
 }

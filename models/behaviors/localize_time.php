@@ -1,8 +1,9 @@
 <?php
 
+App::import('lib','LocalizeTime.LocalizeTime');
+
 class LocalizeTimeBehavior extends ModelBehavior {
 	
-	private static $_userTimeZone = 'UTC';
 	
 	var $defaults = array(
 		'fields'=>array()
@@ -12,19 +13,11 @@ class LocalizeTimeBehavior extends ModelBehavior {
 		$this->settings[$model->name] = am($this->defaults,$config);
 	}
 	
-	static function setUserTimeZone($zoneStr) {
-		self::$_userTimeZone = $zoneStr;
-	}
-	
-	static function getUserTimeZone() {
-		return self::$_userTimeZone;
-	}
-
 	function beforeSave(&$model) {
 		$settings = $this->settings[$model->name];
 		foreach($settings['fields'] as $fieldName) {
 			if(!empty($model->data[$model->alias][$fieldName])) {
-				$model->data[$model->alias][$fieldName] = $this->_toServerTime($model->data[$model->alias][$fieldName]);
+				$model->data[$model->alias][$fieldName] = LocalizeTime::toServerTime($model->data[$model->alias][$fieldName]);
 			}
 		}
 	}
@@ -61,7 +54,7 @@ class LocalizeTimeBehavior extends ModelBehavior {
 				}
 				// finally check if it's in the list of fields to localize
 				if(in_array($foundFieldName,$settings['fields'])) {
-					$conditions[$key] = $this->_toServerTime($value);
+					$conditions[$key] = LocalizeTime::toServerTime($value);
 				}
 			}
 		}
@@ -95,25 +88,11 @@ class LocalizeTimeBehavior extends ModelBehavior {
 		foreach ($results as $key => $val) {
 			foreach($settings['fields'] as $fieldName) {
 				if(!empty($results[$key][$model->alias][$fieldName])) {
-					$results[$key][$model->alias][$fieldName] = $this->_toUserTime($results[$key][$model->alias][$fieldName]);
+					$results[$key][$model->alias][$fieldName] = LocalizeTime::toUserTime($results[$key][$model->alias][$fieldName]);
 				}
 			}
 		}
 		return $results;
-	}
-	
-	function _toServerTime($date){
-		return $this->_convertTimes($date,self::getUserTimeZone(),'UTC');
-	}
-
-	function _toUserTime($date){
-		return $this->_convertTimes($date,'UTC',self::getUserTimeZone());
-	}
-	
-	function _convertTimes($date,$fromZoneStr,$toZoneStr) {
-		$dtime = new DateTime($date, new DateTimeZone($fromZoneStr));
-		$dtime->setTimezone(new DateTimeZone($toZoneStr));
-		return $dtime->format('Y-m-d H:i:s');
 	}
 	
 }

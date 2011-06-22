@@ -45,7 +45,7 @@ class LocalizeTime {
 
 	/**
 	 * Converts a given date from user to server time.
-	 * @param mixed $date the date as user time
+	 * @param string $date the date as user time in and format DateTime class accepts.
 	 * @return string the date as server time in the format Y-m-d H:i:s
 	 */
 
@@ -55,7 +55,7 @@ class LocalizeTime {
 
 	/**
 	 * Converts a given date from server to user time.
-	 * @param mixed $date the date as server time
+	 * @param string $date the date as server time, in any format DateTime class accepts.
 	 * @return string the date as user time in the format Y-m-d H:i:s
 	 */
 
@@ -65,7 +65,7 @@ class LocalizeTime {
 
 	/**
 	 * Converts a date from one timezone to another
-	 * @param mixed $date the date to convert
+	 * @param string $date the date to convert in any format DateTime class accepts
 	 * @param string $fromZoneStr the original timezone in string format
 	 * @param string $toZoneStr the destination timezone in string format
 	 * @return string the converted date in the destination timezone, in the format Y-m-d H:i:s

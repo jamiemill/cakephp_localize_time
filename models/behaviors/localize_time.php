@@ -73,22 +73,25 @@ class LocalizeTimeBehavior extends ModelBehavior {
 	*/
 	
 	function doLocalizeTimeAfterFind(&$model, $results, $primary) {
-		if($primary) {
-			$results = $this->_walkResults($model,$results);
-		} else {
-			// Docs lead me to beleive that data could be in a different format in this clause, but seems the same in my test. 
-			// Perhaps different depending on relationship type?
-			$results = $this->_walkResults($model,$results);
-		}
-		return $results;
+		return $this->_walkResults($model, $results, $primary);
 	}
 	
-	function _walkResults(&$model,$results) {
+	function _walkResults(&$model,$results,$primary = true) {
 		$settings = $this->settings[$model->name];
-		foreach ($results as $key => $val) {
-			foreach($settings['fields'] as $fieldName) {
-				if(!empty($results[$key][$model->alias][$fieldName])) {
-					$results[$key][$model->alias][$fieldName] = LocalizeTime::toUserTime($results[$key][$model->alias][$fieldName]);
+		if ($primary) {
+			foreach ($results as $key => $val) {
+				foreach($settings['fields'] as $fieldName) {
+					if(!empty($results[$key][$model->alias][$fieldName])) {
+						$results[$key][$model->alias][$fieldName] = LocalizeTime::toUserTime($results[$key][$model->alias][$fieldName]);
+					}
+				}
+			}
+		} else {
+			for ($i = 0; $i < count($results); $i++ ) {
+				foreach($settings['fields'] as $fieldName) {
+					if(!empty($results[$i][$fieldName])) {
+						$results[$i][$fieldName] = LocalizeTime::toUserTime($results[$i][$fieldName]);
+					}
 				}
 			}
 		}

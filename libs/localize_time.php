@@ -71,10 +71,10 @@ class LocalizeTime {
 	 * @return string the converted date in the destination timezone, in the format Y-m-d H:i:s
 	 */
 
-	static function convertTimes($date,$fromZoneStr,$toZoneStr) {
+	static function convertTimes($date,$fromZoneStr,$toZoneStr,$format = 'Y-m-d H:i:s') {
 		$dtime = new DateTime($date, new DateTimeZone($fromZoneStr));
 		$dtime->setTimezone(new DateTimeZone($toZoneStr));
-		return $dtime->format('Y-m-d H:i:s');
+		return $dtime->format($format);
 	}
 
 }

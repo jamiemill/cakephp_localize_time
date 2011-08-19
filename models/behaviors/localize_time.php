@@ -11,6 +11,9 @@ class LocalizeTimeBehavior extends ModelBehavior {
 	
 	function setup(&$model, $config = array()) {
 		$this->settings[$model->name] = am($this->defaults,$config);
+		if (!empty($this->settings[$model->name]['fields'])) {
+			$this->settings[$model->name]['fields'] = array_unique($this->settings[$model->name]['fields']);
+		}
 	}
 	
 	function beforeSave(&$model) {
@@ -20,6 +23,7 @@ class LocalizeTimeBehavior extends ModelBehavior {
 				$model->data[$model->alias][$fieldName] = LocalizeTime::toServerTime($model->data[$model->alias][$fieldName]);
 			}
 		}
+		return true;
 	}
 	
 	function beforeFind(&$model,$queryData) {

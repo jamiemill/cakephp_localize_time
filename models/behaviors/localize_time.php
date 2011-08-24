@@ -35,6 +35,11 @@ class LocalizeTimeBehavior extends ModelBehavior {
 	
 	function _localizeConditions(&$model,$conditions) {
 		$settings = $this->settings[$model->name];
+		if ($model->Behaviors->enabled('Inheritable') && is_subclass_of($model->parent, 'AppModel')) {
+			$alias = $model->parent->alias;
+		} else {
+			$alias = $model->alias;
+		}
 		foreach($conditions as $key => $value) {
 			// if the value is an array, recurse
 			// TODO: check the $key is not one of our fields, in which case they wanted an IN() query
@@ -46,7 +51,7 @@ class LocalizeTimeBehavior extends ModelBehavior {
 				$foundFieldName = $key;
 				// if there's a dot, abort if the model alias doesn't match
 				if(strpos($foundFieldName,'.') !== false) {
-					if(substr($foundFieldName,0,strpos($foundFieldName,'.')) != $model->alias) {
+					if(substr($foundFieldName,0,strpos($foundFieldName,'.')) != $alias) {
 						continue;
 					} else {
 						$foundFieldName = substr($foundFieldName,strpos($foundFieldName,'.')+1);

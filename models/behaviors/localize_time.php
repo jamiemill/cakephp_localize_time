@@ -11,6 +11,9 @@ class LocalizeTimeBehavior extends ModelBehavior {
 	
 	function setup(&$model, $config = array()) {
 		$this->settings[$model->name] = am($this->defaults,$config);
+		if (!empty($this->settings[$model->name]['fields'])) {
+			$this->settings[$model->name]['fields'] = array_unique($this->settings[$model->name]['fields']);
+		}
 	}
 	
 	function beforeSave(&$model) {
@@ -20,6 +23,7 @@ class LocalizeTimeBehavior extends ModelBehavior {
 				$model->data[$model->alias][$fieldName] = LocalizeTime::toServerTime($model->data[$model->alias][$fieldName]);
 			}
 		}
+		return true;
 	}
 	
 	function beforeFind(&$model,$queryData) {
@@ -31,6 +35,11 @@ class LocalizeTimeBehavior extends ModelBehavior {
 	
 	function _localizeConditions(&$model,$conditions) {
 		$settings = $this->settings[$model->name];
+		if ($model->Behaviors->enabled('Inheritable') && is_subclass_of($model->parent, 'AppModel')) {
+			$alias = $model->parent->alias;
+		} else {
+			$alias = $model->alias;
+		}
 		foreach($conditions as $key => $value) {
 			// if the value is an array, recurse
 			// TODO: check the $key is not one of our fields, in which case they wanted an IN() query
@@ -42,7 +51,7 @@ class LocalizeTimeBehavior extends ModelBehavior {
 				$foundFieldName = $key;
 				// if there's a dot, abort if the model alias doesn't match
 				if(strpos($foundFieldName,'.') !== false) {
-					if(substr($foundFieldName,0,strpos($foundFieldName,'.')) != $model->alias) {
+					if(substr($foundFieldName,0,strpos($foundFieldName,'.')) != $alias) {
 						continue;
 					} else {
 						$foundFieldName = substr($foundFieldName,strpos($foundFieldName,'.')+1);
@@ -73,22 +82,25 @@ class LocalizeTimeBehavior extends ModelBehavior {
 	*/
 	
 	function doLocalizeTimeAfterFind(&$model, $results, $primary) {
-		if($primary) {
-			$results = $this->_walkResults($model,$results);
-		} else {
-			// Docs lead me to beleive that data could be in a different format in this clause, but seems the same in my test. 
-			// Perhaps different depending on relationship type?
-			$results = $this->_walkResults($model,$results);
-		}
-		return $results;
+		return $this->_walkResults($model, $results, $primary);
 	}
 	
-	function _walkResults(&$model,$results) {
+	function _walkResults(&$model,$results,$primary = true) {
 		$settings = $this->settings[$model->name];
-		foreach ($results as $key => $val) {
-			foreach($settings['fields'] as $fieldName) {
-				if(!empty($results[$key][$model->alias][$fieldName])) {
-					$results[$key][$model->alias][$fieldName] = LocalizeTime::toUserTime($results[$key][$model->alias][$fieldName]);
+		if ($primary) {
+			foreach ($results as $key => $val) {
+				foreach($settings['fields'] as $fieldName) {
+					if(!empty($results[$key][$model->alias][$fieldName])) {
+						$results[$key][$model->alias][$fieldName] = LocalizeTime::toUserTime($results[$key][$model->alias][$fieldName]);
+					}
+				}
+			}
+		} else {
+			for ($i = 0; $i < count($results); $i++ ) {
+				foreach($settings['fields'] as $fieldName) {
+					if(!empty($results[$i][$fieldName])) {
+						$results[$i][$fieldName] = LocalizeTime::toUserTime($results[$i][$fieldName]);
+					}
 				}
 			}
 		}
